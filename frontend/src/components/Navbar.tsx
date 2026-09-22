@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Camera, BookOpen, Bot, History, User, Settings, LogOut, Menu, X } from 'lucide-react';
 import logo from '../assets/logo.png';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import logo from '../assets/logo.png';
 import { ArrowRight, Mail, Lock } from 'lucide-react';
 
@@ -21,7 +21,8 @@ export default function Login() {
     try {
       // Mock login for UI purposes, integrate real auth later
       if (email && password) {
-         await login(email, password);
+         const dummyUser = { id: '1', email, name: email.split('@')[0], preferredLanguage: 'English' };
+         login('demo-session-token', dummyUser as any);
          navigate('/dashboard');
       } else {
          setError('Please fill in all fields.');

@@ -115,7 +115,7 @@ export default function ISLLearning() {
               <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs">
                 <span className="text-white/40 font-mono">OFFICIAL RESOURCE</span>
                 <a
-                  href={res.url || 'https://islrtc.nic.in/'}
+                  href={(res as any).url || 'https://islrtc.nic.in/'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-cyan-400 font-semibold hover:text-cyan-300 transition-colors"

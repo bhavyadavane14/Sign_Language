@@ -49,7 +49,7 @@ export default function Chatbot() {
       const response = await chatbotService.sendMessage(userMessage.text);
       const botMessage: Message = { 
         id: (Date.now() + 1).toString(), 
-        text: response.reply || response.response || 'I am processing your query.', 
+        text: response.reply || (response as any).response || 'I am processing your query.', 
         sender: 'bot',
         sources: response.sources
       };
