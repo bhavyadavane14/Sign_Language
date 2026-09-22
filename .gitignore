@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+**/node_modules/
+package-lock.json.log
+
+# Build & Dist
+dist/
+**/dist/
+build/
+.next/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+**/.venv/
+env/
+
+# Environment Variables & Secrets
+.env
+**/.env
+.env.local
+.env.*.local
+
+# ML Models & Heavy Binary Weights
+*.h5
+*.pb
+*.tflite
+*.onnx
+*.pt
+*.bin
+!model/weights/.gitkeep
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs & Testing
+*.log
+logs/
+coverage/
+.pytest_cache/
