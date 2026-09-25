@@ -1,453 +1,348 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { 
-  Camera, CameraOff, Volume2, Trash2, Copy, Check, 
-  Sparkles, Hand, Zap, Activity, RefreshCw, CornerDownLeft, Eye, HelpCircle
+  Camera, CameraOff, Volume2, Image as ImageIcon, 
+  RotateCw, RefreshCw, MessageSquare, AlertCircle, Sparkles, Check, Info
 } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
 import { useMediaPipeHands } from '../hooks/useMediaPipeHands';
-
-const SUPPORTED_SIGNS = [
-  { sign: 'A', type: 'Alphabet', tip: 'Make a fist with thumb resting alongside' },
-  { sign: 'B / 4', type: 'Digit/Letter', tip: '4 fingers upright, thumb folded in' },
-  { sign: 'C', type: 'Alphabet', tip: 'Curve fingers and thumb into a C-arc' },
-  { sign: 'D / 1', type: 'Digit/Letter', tip: 'Point index finger straight up' },
-  { sign: 'F / OK', type: 'Phrase', tip: 'Touch thumb & index tip in circle, 3 fingers up' },
-  { sign: 'I', type: 'Alphabet', tip: 'Pinky finger straight up, others folded' },
-  { sign: 'L', type: 'Alphabet', tip: 'Index finger up, thumb out at 90° angle' },
-  { sign: 'O', type: 'Alphabet', tip: 'Touch all fingertips to thumb in an O ring' },
-  { sign: 'U', type: 'Alphabet', tip: 'Index & middle fingers straight together' },
-  { sign: 'V / 2', type: 'Digit/Letter', tip: 'Index & middle fingers open in a V (Peace)' },
-  { sign: 'W / 3', type: 'Digit/Letter', tip: 'Index, middle, & ring fingers up' },
-  { sign: 'Y', type: 'Alphabet', tip: 'Thumb and pinky extended out (Shaka sign)' },
-  { sign: 'HELLO / 5', type: 'Phrase/Digit', tip: 'All 5 fingers spread out and upright' },
-  { sign: 'GOOD / YES', type: 'Phrase', tip: 'Thumb pointed up (Thumbs Up)' },
-  { sign: 'I LOVE YOU', type: 'Phrase', tip: 'Thumb, index, and pinky extended out' },
-];
+import SignXHeader from '../components/SignXHeader';
+import HamburgerMenu from '../components/HamburgerMenu';
+import SignXAssistantDrawer from '../components/SignXAssistantDrawer';
+import TranslationOutputCard from '../components/TranslationOutputCard';
+import { historyService } from '../services/historyService';
 
 export default function Translator() {
   const { isCameraActive, startCamera, stopCamera, videoRef, error: cameraError } = useCamera();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Live MediaPipe 21-point tracking
+  // Live MediaPipe landmark extraction (Strictly vision preprocessing, no fake classification)
   const { 
     isReady: isModelReady, 
     isDetecting, 
     fps, 
     detectedSign, 
     confidence, 
-    fingerState 
+    handCount,
+    statusText,
+    isModelLoaded 
   } = useMediaPipeHands(videoRef, canvasRef, isCameraActive);
 
-  const [sentence, setSentence] = useState<string>('');
-  const [copied, setCopied] = useState<boolean>(false);
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [autoAppend, setAutoAppend] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'alphabet' | 'digit' | 'phrase'>('all');
+  // Navigation & UI States
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'camera' | 'output'>('camera');
+  
+  // Real active translation text
+  const [currentSign, setCurrentSign] = useState<string>('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const lastAppendedSignRef = useRef<string>('');
-  const stableHoldCountRef = useRef<number>(0);
-
-  // Auto-append when sign is held steady for ~1.5 seconds (approx 15 frames)
+  // Auto-start camera when mounting Home screen for immediate usability
   useEffect(() => {
-    if (!autoAppend || !isCameraActive || !detectedSign) {
-      stableHoldCountRef.current = 0;
-      return;
-    }
+    startCamera();
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
-    if (detectedSign === lastAppendedSignRef.current) {
-      stableHoldCountRef.current += 1;
-      if (stableHoldCountRef.current === 18) { // Locked threshold
-        setSentence(prev => prev ? `${prev} ${detectedSign}` : detectedSign);
-      }
-    } else {
-      lastAppendedSignRef.current = detectedSign;
-      stableHoldCountRef.current = 1;
+  // Update current sign only when genuine model prediction arrives
+  useEffect(() => {
+    if (detectedSign && isModelLoaded) {
+      setCurrentSign(detectedSign);
+      // Save genuine translation to user history
+      historyService.addHistoryItem({
+        id: Date.now().toString(),
+        signText: detectedSign,
+        translatedText: detectedSign,
+        language: 'en-IN',
+        timestamp: new Date().toISOString(),
+      });
     }
-  }, [detectedSign, autoAppend, isCameraActive]);
+  }, [detectedSign, isModelLoaded]);
 
-  const handleSpeak = () => {
-    if (!sentence || !('speechSynthesis' in window)) return;
+  const handleSpeak = (text: string) => {
+    if (!text) return;
+    if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(sentence);
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
-    utterance.pitch = 1.0;
+    utterance.lang = 'en-IN';
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleCopy = () => {
-    if (!sentence) return;
-    navigator.clipboard.writeText(sentence);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleBackspace = () => {
-    setSentence(prev => {
-      const words = prev.trim().split(' ');
-      words.pop();
-      return words.join(' ');
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-surface-900 text-white font-sans pt-20 pb-16 px-4 sm:px-6 lg:px-8">
-      {/* Background Orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="orb orb-1 opacity-20"></div>
-        <div className="orb orb-2 opacity-15"></div>
-      </div>
+    <div className="min-h-screen bg-[#FAF7F2] text-charcoal-900 font-sans flex flex-col justify-between">
+      
+      {/* 1. Top Web Header matching Screens 4 & 5 */}
+      <SignXHeader 
+        onOpenMenu={() => setIsMenuOpen(true)} 
+        showProfile={true}
+      />
 
-      <div className="max-w-7xl mx-auto relative z-10 space-y-6">
+      {/* 2. Main Studio Viewport (Responsive: Mobile centered, Desktop side-by-side) */}
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center">
         
-        {/* Top Telemetry Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-white/10">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl md:text-4xl font-display font-extrabold tracking-tight">
-                AI Sign <span className="text-gradient">Studio</span>
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30 flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-accent-400" /> Real-Time 3D HUD
-              </span>
-            </div>
-            <p className="text-sm text-white/50">
-              Live Indian Sign Language hand-pose estimation powered by Google MediaPipe
-            </p>
-          </div>
-
-          {/* HUD Status Badges */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="glass px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 text-xs">
-              <span className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-white/20'}`} />
-              <span className="text-white/60">CAMERA:</span>
-              <span className="font-mono font-bold text-white">{isCameraActive ? 'LIVE' : 'OFF'}</span>
-            </div>
-
-            <div className="glass px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 text-xs">
-              <Activity className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-white/60">FPS:</span>
-              <span className="font-mono font-bold text-cyan-300">{fps || 0}</span>
-            </div>
-
-            <div className="glass px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 text-xs">
-              <Hand className="w-3.5 h-3.5 text-purple-400" />
-              <span className="text-white/60">TRACKING:</span>
-              <span className={`font-mono font-bold ${isDetecting ? 'text-emerald-400' : 'text-white/40'}`}>
-                {isDetecting ? '21 LANDMARKS' : 'SEARCHING'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Studio Grid: Camera Viewport (Left) & Translation HUD (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* CAMERA VIEWPORT (Left 7 Cols) */}
-          <div className="lg:col-span-7 flex flex-col space-y-4">
+        {viewMode === 'camera' ? (
+          /* ============================================================
+             SCREEN 4: HOME / LIVE ISL DETECTION
+             ============================================================ */
+          <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            <div className={`camera-container relative aspect-[4/3] rounded-3xl overflow-hidden glass-strong border-2 transition-all duration-300 ${isCameraActive ? 'border-cyan-500/40 shadow-[0_0_35px_rgba(6,182,212,0.25)]' : 'border-white/10'}`}>
-              
-              {/* Corner Cyberpunk Reticles */}
-              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-cyan-400 z-20 pointer-events-none opacity-80" />
-              <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-cyan-400 z-20 pointer-events-none opacity-80" />
-              <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-cyan-400 z-20 pointer-events-none opacity-80" />
-              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-cyan-400 z-20 pointer-events-none opacity-80" />
+            {/* Left / Top: Camera Viewport with Green Reticle & Live Hands */}
+            <div className="lg:col-span-7 flex flex-col items-center">
+              <div className="relative aspect-[3/4] sm:aspect-[4/3] w-full max-w-lg rounded-3xl bg-charcoal-900 overflow-hidden shadow-card border-2 border-cream-300">
+                
+                {/* HTML5 Video Element */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={`w-full h-full object-cover transition-opacity duration-300 ${
+                    isCameraActive ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{ transform: 'scaleX(-1)' }} // Mirror view for natural interaction
+                />
 
-              {/* Video Element */}
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover transform scale-x-[-1] ${isCameraActive ? 'block' : 'hidden'}`}
-              />
+                {/* Landmark Canvas with Green Reticle Brackets */}
+                <canvas
+                  ref={canvasRef}
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{ transform: 'scaleX(-1)' }}
+                />
 
-              {/* 2D HUD & Skeleton Canvas */}
-              <canvas
-                ref={canvasRef}
-                className={`absolute inset-0 w-full h-full object-cover z-10 pointer-events-none transform scale-x-[-1] ${isCameraActive ? 'block' : 'hidden'}`}
-              />
-
-              {/* Active HUD Overlays */}
-              {isCameraActive && (
-                <>
-                  <div className="absolute top-5 left-5 z-20 flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                    <span className="font-mono text-cyan-300 tracking-wider">OPTICAL STREAM ON</span>
-                  </div>
-
-                  {/* Finger State Matrix (Live Anatomy Telemetry) */}
-                  <div className="absolute bottom-5 left-5 z-20 glass px-3.5 py-2.5 rounded-2xl border border-white/15 bg-slate-950/80 backdrop-blur-md flex items-center gap-2">
-                    <span className="text-[10px] uppercase font-mono tracking-widest text-white/50 mr-1">FINGERS</span>
-                    {[
-                      { name: 'T', state: fingerState.thumb },
-                      { name: 'I', state: fingerState.index },
-                      { name: 'M', state: fingerState.middle },
-                      { name: 'R', state: fingerState.ring },
-                      { name: 'P', state: fingerState.pinky }
-                    ].map(f => (
-                      <div 
-                        key={f.name}
-                        className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono text-[10px] font-bold transition-all duration-200 ${
-                          f.state 
-                            ? 'bg-emerald-500 text-black shadow-[0_0_10px_#10b981]' 
-                            : 'bg-white/10 text-white/30'
-                        }`}
-                        title={f.state ? 'Extended' : 'Folded'}
-                      >
-                        {f.name}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Placeholder when Camera is Off */}
-              {!isCameraActive && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-surface-800/80 to-surface-900/90 backdrop-blur-md">
-                  <div className="w-20 h-20 rounded-3xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center mb-5 text-brand-400 shadow-glow">
-                    <Camera className="w-10 h-10" />
-                  </div>
-                  <h3 className="text-xl font-display font-bold text-white mb-2">Camera is Idle</h3>
-                  <p className="text-sm text-white/50 max-w-sm mb-6">
-                    Activate your webcam to initiate optical Indian Sign Language recognition with real-time skeleton projection.
-                  </p>
-                  <button
-                    onClick={startCamera}
-                    className="btn-primary flex items-center gap-2 px-8 py-3.5 rounded-2xl shadow-lg shadow-brand-500/30 text-white font-semibold hover:scale-105 transition-transform"
-                  >
-                    <Zap className="w-5 h-5 text-accent-300" /> Start Real-Time AI Camera
-                  </button>
-                  {cameraError && (
-                    <div className="mt-4 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
-                      {cameraError}
+                {/* Camera Inactive Fallback */}
+                {!isCameraActive && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-cream-200/95 text-charcoal-700 space-y-3">
+                    <div className="w-16 h-16 rounded-3xl bg-white border border-cream-300 flex items-center justify-center text-coral-500 shadow-sm">
+                      <CameraOff className="w-8 h-8" />
                     </div>
+                    <div>
+                      <h3 className="font-bold text-base sm:text-lg text-charcoal-900 font-display">Camera is Paused</h3>
+                      <p className="text-xs sm:text-sm text-charcoal-500 mt-1 max-w-xs">
+                        Click the center button below to activate your webcam for live Indian Sign Language capture.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Status Pill Badge matching Screen 4: "Detecting..." / "Waiting for sign..." */}
+                {isCameraActive && (
+                  <div className="absolute bottom-4 inset-x-0 flex justify-center pointer-events-none">
+                    <div className="px-4 py-1.5 rounded-full bg-charcoal-900/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-2 border border-white/20 shadow-md">
+                      <span className={`w-2.5 h-2.5 rounded-full ${isDetecting ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+                      <span>{isDetecting ? 'Detecting gestures...' : 'Position your hand inside frame'}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Model Status Floating Banner */}
+                {!isModelLoaded && isCameraActive && (
+                  <div className="absolute top-3 inset-x-3 pointer-events-none">
+                    <div className="p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-amber-300 text-charcoal-800 text-xs flex items-center gap-2.5 shadow-sm">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span className="truncate">
+                        MediaPipe vision active • Awaiting trained weights (`signx_model.h5`)
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Camera Controls matching Screen 4: [Gallery] [Record/Stop] [Switch] */}
+              <div className="w-full max-w-lg flex items-center justify-around pt-4 px-6">
+                
+                {/* Left: Gallery */}
+                <button
+                  onClick={() => alert("Upload gesture: Use real-time webcam video stream for optimal multi-frame ISL recognition.")}
+                  className="flex flex-col items-center gap-1.5 text-charcoal-600 hover:text-coral-600 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-cream-300 flex items-center justify-center shadow-sm hover:border-coral-300 transition-colors">
+                    <ImageIcon className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-semibold">Gallery</span>
+                </button>
+
+                {/* Center: Large Record / Stop Toggle (Red/Coral circle matching Screen 4) */}
+                <button
+                  onClick={isCameraActive ? stopCamera : startCamera}
+                  aria-label={isCameraActive ? "Stop Camera" : "Start Camera"}
+                  className="w-16 h-16 rounded-full bg-gradient-to-tr from-coral-500 to-coral-600 p-1.5 shadow-btn flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+                >
+                  <div className="w-full h-full rounded-full border-2 border-white flex items-center justify-center bg-coral-500">
+                    {isCameraActive ? (
+                      <div className="w-5 h-5 bg-white rounded-md shadow-sm" />
+                    ) : (
+                      <Camera className="w-6 h-6 text-white" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Right: Switch Camera */}
+                <button
+                  onClick={() => {
+                    stopCamera();
+                    setTimeout(() => startCamera(), 300);
+                  }}
+                  className="flex flex-col items-center gap-1.5 text-charcoal-600 hover:text-coral-600 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-cream-300 flex items-center justify-center shadow-sm hover:border-coral-300 transition-colors">
+                    <RotateCw className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-semibold">Switch</span>
+                </button>
+
+              </div>
+            </div>
+
+            {/* Right / Bottom: Translation Card & Status Info matching Screen 4 */}
+            <div className="lg:col-span-5 w-full max-w-lg mx-auto space-y-4">
+              
+              {/* Detected Sign Output Card matching Screen 4 */}
+              <div className="signx-card p-6 bg-white shadow-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-coral-600 uppercase tracking-wider font-display">
+                    <span className="w-2.5 h-2.5 rounded-full bg-coral-500" />
+                    <span>{isModelLoaded ? "Detected Sign" : "Vision Status"}</span>
+                  </div>
+
+                  {currentSign && (
+                    <button
+                      onClick={() => setViewMode('output')}
+                      className="text-xs font-bold text-coral-600 hover:text-coral-700 underline"
+                    >
+                      View Details →
+                    </button>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Camera Control Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {isCameraActive ? (
-                  <button
-                    onClick={stopCamera}
-                    className="btn-secondary px-5 py-2.5 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 flex items-center gap-2 text-sm font-medium transition-colors"
-                  >
-                    <CameraOff className="w-4 h-4" /> Stop Camera
-                  </button>
-                ) : (
-                  <button
-                    onClick={startCamera}
-                    className="btn-primary px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium"
-                  >
-                    <Camera className="w-4 h-4" /> Start Camera
-                  </button>
-                )}
-
-                <label className="flex items-center gap-2 px-3 py-2 rounded-xl glass border border-white/10 text-xs text-white/70 cursor-pointer hover:bg-white/10 transition-colors select-none">
-                  <input
-                    type="checkbox"
-                    checked={autoAppend}
-                    onChange={(e) => setAutoAppend(e.target.checked)}
-                    className="accent-brand-500 w-4 h-4 rounded"
-                  />
-                  <span>Auto-append sign</span>
-                </label>
-              </div>
-
-              <div className="text-xs text-white/40 flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Mirrored preview active</span>
-              </div>
-            </div>
-
-          </div>
-
-          {/* TRANSLATION & RECOGNITION HUD (Right 5 Cols) */}
-          <div className="lg:col-span-5 flex flex-col space-y-5">
-            
-            {/* 1. Live Detected Sign Hologram */}
-            <div className="glass-card relative overflow-hidden p-6 rounded-3xl border border-white/15 bg-white/5 backdrop-blur-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  OPTICAL RECOGNITION
-                </span>
-                <span className="text-xs font-mono text-white/40">
-                  {isDetecting ? 'HAND IN FRAME' : 'NO HAND'}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center py-4 min-h-[140px] text-center">
-                {isCameraActive && detectedSign ? (
-                  <>
-                    <div className="text-5xl md:text-6xl font-display font-extrabold text-gradient tracking-wider drop-shadow-[0_0_25px_rgba(99,102,241,0.5)] animate-scale-in">
-                      {detectedSign}
-                    </div>
-
-                    <div className="w-full mt-5 space-y-2">
-                      <div className="flex justify-between text-xs font-mono text-white/60">
-                        <span>CONFIDENCE</span>
-                        <span className="text-cyan-300 font-bold">{confidence}%</span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-cyan-500 via-brand-500 to-accent-500 transition-all duration-300"
-                          style={{ width: `${confidence}%` }}
-                        />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-2">
-                    <Hand className="w-12 h-12 text-white/15 mx-auto animate-pulse" />
-                    <p className="text-sm text-white/40">
-                      {isCameraActive ? 'Hold your hand steadily in front of the lens...' : 'Camera not active'}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-charcoal-900 tracking-tight font-display">
+                      {isModelLoaded 
+                        ? (currentSign || (isDetecting ? "Processing gesture..." : "Waiting for sign..."))
+                        : (isDetecting ? "Hand Tracked (MediaPipe)" : "Position hand in frame")}
+                    </h3>
+                    
+                    <p className="text-xs text-charcoal-500 mt-1 leading-relaxed">
+                      {isModelLoaded 
+                        ? (currentSign ? "Recognized by neural model" : "Sign steady inside the green reticle box")
+                        : (isDetecting 
+                            ? "21 3D landmarks extracted • Awaiting verified model weights" 
+                            : "No hand visible inside webcam viewport")}
                     </p>
                   </div>
-                )}
-              </div>
 
-              {/* Append manual button */}
-              <button
-                onClick={() => setSentence(prev => prev ? `${prev} ${detectedSign}` : detectedSign)}
-                disabled={!detectedSign || !isCameraActive}
-                className="w-full mt-4 btn-primary py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <CornerDownLeft className="w-4 h-4" /> Add "{detectedSign || 'Sign'}" to Sentence
-              </button>
-            </div>
-
-            {/* 2. Sentence Accumulator & Speech Hub */}
-            <div className="glass-card p-6 rounded-3xl border border-white/15 bg-white/5 backdrop-blur-2xl flex flex-col space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-widest text-brand-300">
-                  ACCUMULATED SENTENCE
-                </span>
-                <span className="text-xs text-white/40 font-mono">
-                  {sentence ? sentence.split(' ').filter(Boolean).length : 0} WORDS
-                </span>
-              </div>
-
-              {/* Text Area Display */}
-              <div className="p-4 rounded-2xl bg-black/40 border border-white/10 min-h-[110px] font-sans text-lg text-white leading-relaxed flex items-center">
-                {sentence ? (
-                  <span className="font-medium text-white tracking-wide">{sentence}</span>
-                ) : (
-                  <span className="text-white/25 italic text-sm">
-                    Recognized signs will sequence into continuous text here...
-                  </span>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <button
-                  onClick={handleSpeak}
-                  disabled={!sentence}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
-                    isSpeaking 
-                      ? 'bg-accent-600 text-white shadow-glow-accent animate-pulse'
-                      : 'bg-brand-600 hover:bg-brand-500 text-white shadow-glow disabled:opacity-40 disabled:cursor-not-allowed'
-                  }`}
-                >
-                  <Volume2 className="w-4 h-4" /> {isSpeaking ? 'Voicing...' : 'Read Aloud'}
-                </button>
-
-                <button
-                  onClick={handleCopy}
-                  disabled={!sentence}
-                  className="px-3.5 py-3 rounded-xl glass border border-white/10 hover:bg-white/10 text-white/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Copy text"
-                >
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                </button>
-
-                <button
-                  onClick={handleBackspace}
-                  disabled={!sentence}
-                  className="px-3.5 py-3 rounded-xl glass border border-white/10 hover:bg-white/10 text-white/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Delete last word"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => setSentence('')}
-                  disabled={!sentence}
-                  className="px-3.5 py-3 rounded-xl glass border border-white/10 hover:bg-red-500/20 text-white/60 hover:text-red-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Clear all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* BOTTOM SECTION: ISL Interactive Gesture Reference Guide */}
-        <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/15 bg-white/5 backdrop-blur-2xl">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-accent-400" />
-                Supported Indian Sign Language Gestures & Finger Guides
-              </h2>
-              <p className="text-xs text-white/50 mt-1">
-                Match these hand postures to test and train the computer vision model in real time.
-              </p>
-            </div>
-
-            {/* Filter pills */}
-            <div className="flex items-center gap-1.5 p-1 rounded-xl glass border border-white/10 text-xs">
-              {(['all', 'alphabet', 'digit', 'phrase'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg capitalize font-medium transition-colors ${
-                    activeTab === tab 
-                      ? 'bg-brand-600 text-white shadow-sm' 
-                      : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
-            {SUPPORTED_SIGNS
-              .filter(item => activeTab === 'all' || item.type.toLowerCase().includes(activeTab))
-              .map(item => (
-                <div 
-                  key={item.sign}
-                  onClick={() => setSentence(prev => prev ? `${prev} ${item.sign}` : item.sign)}
-                  className="glass p-4 rounded-2xl border border-white/10 hover:border-brand-400/50 hover:bg-white/10 cursor-pointer transition-all duration-200 group flex flex-col justify-between"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl font-display font-extrabold text-white group-hover:text-gradient">
-                      {item.sign}
-                    </span>
-                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-md bg-white/5 text-white/40">
-                      {item.type}
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/50 group-hover:text-white/80 line-clamp-2">
-                    {item.tip}
-                  </p>
+                  {/* Speaker Button (active only if genuine sign exists) */}
+                  <button
+                    onClick={() => handleSpeak(currentSign)}
+                    disabled={!currentSign}
+                    aria-label="Speak detected sign"
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-btn ${
+                      isSpeaking 
+                        ? 'bg-forest-700 text-white animate-pulse' 
+                        : currentSign
+                          ? 'bg-coral-500 hover:bg-coral-600 text-white active:scale-95'
+                          : 'bg-cream-200 text-charcoal-400 cursor-not-allowed shadow-none'
+                    }`}
+                  >
+                    <Volume2 className="w-5 h-5" />
+                  </button>
                 </div>
-              ))}
-          </div>
-        </div>
+              </div>
 
+              {/* Verified ISL Standards & Architecture Card */}
+              <div className="signx-card p-5 bg-cream-50 border border-cream-300/80 shadow-sm space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-forest-100 text-forest-700 flex items-center justify-center">
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-charcoal-900 uppercase tracking-wider font-display">
+                    Indian Sign Language Integrity
+                  </h4>
+                </div>
+
+                <p className="text-xs text-charcoal-600 leading-relaxed">
+                  SignX uses <strong>Google MediaPipe Hands</strong> for 21-point spatial coordinate extraction. Neural classification is strictly decoupled and requires verified ISL model weights trained on the <strong>ISLRTC / INCLUDE</strong> corpus. No signs or accuracies are simulated.
+                </p>
+
+                <div className="pt-1 flex items-center justify-between text-[11px] font-semibold text-charcoal-500 border-t border-cream-200">
+                  <span>Standard: ISLRTC 10k Terms</span>
+                  <span className={isModelLoaded ? "text-forest-700" : "text-amber-700"}>
+                    Model: {isModelLoaded ? "Loaded" : "Weights Pending"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Navigation to Learn ISL */}
+              <div className="p-4 rounded-2xl bg-white border border-cream-300 flex items-center justify-between shadow-sm">
+                <div>
+                  <h5 className="text-xs font-bold text-charcoal-900">Want to learn authentic signs?</h5>
+                  <p className="text-[11px] text-charcoal-500">Explore official ISLRTC dictionary entries</p>
+                </div>
+                <button
+                  onClick={() => window.location.href = '/learn'}
+                  className="py-2 px-3.5 rounded-xl bg-forest-700 text-white text-xs font-bold shadow-btn-forest hover:bg-forest-800 transition-colors"
+                >
+                  Learn ISL →
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        ) : (
+          /* ============================================================
+             SCREEN 5: TRANSLATION OUTPUT
+             ============================================================ */
+          <TranslationOutputCard
+            detectedSign={currentSign || ""}
+            confidence={confidence}
+            onTryAnother={() => setViewMode('camera')}
+          />
+        )}
+
+      </main>
+
+      {/* Floating SignX Assistant Chatbot Button */}
+      <div className="fixed bottom-6 right-6 z-30">
+        <button
+          onClick={() => setIsAssistantOpen(true)}
+          aria-label="Open SignX Assistant"
+          className="group relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-coral-500 via-coral-600 to-forest-700 text-white shadow-btn hover:shadow-xl hover:scale-105 active:scale-95 transition-all"
+        >
+          <div className="relative">
+            <MessageSquare className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+          </div>
+          <span className="font-bold text-xs tracking-wide font-display hidden sm:inline">
+            SignX Assistant
+          </span>
+        </button>
       </div>
+
+      {/* Hamburger Menu Drawer */}
+      <HamburgerMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        onOpenAssistant={() => setIsAssistantOpen(true)}
+      />
+
+      {/* SignX Assistant Chatbot Drawer */}
+      <SignXAssistantDrawer
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+      />
+
+      {/* Footer Branding Banner */}
+      <footer className="py-3 text-center border-t border-cream-200 bg-white/50 text-xs text-charcoal-500 font-medium">
+        <span>Bridge • Understand • Include &nbsp;|&nbsp; </span>
+        <span className="font-hand text-coral-600 text-base font-bold">Different Hands Same World ♥</span>
+      </footer>
+
     </div>
   );
 }

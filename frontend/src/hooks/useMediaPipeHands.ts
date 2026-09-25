@@ -1,10 +1,17 @@
 /**
- * Hook to initialize and run Google MediaPipe Hands in the browser with maximum compatibility.
- * Provides live landmark tracking and calls callbacks per frame.
+ * SignX - MediaPipe Hands Hook
+ * ==============================
+ * Initializes and manages Google MediaPipe Hands in the browser.
+ * Extracts 21 3D spatial landmarks for Indian Sign Language processing.
+ * 
+ * STRICT POLICY:
+ * - MediaPipe is purely for landmark extraction and vision tracking.
+ * - Does NOT perform heuristic gesture classification or fake predictions.
+ * - Genuine recognition requires the verified ISL model.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { HandLandmark, classifyHandGesture, drawFuturisticSkeleton } from '../services/handGestureRecognizer';
+import { HandLandmark, drawSignXReticle, extractNormalizedFeatures } from '../services/handGestureRecognizer';
 
 declare global {
   interface Window {
@@ -17,16 +24,12 @@ export interface HandDetectionState {
   isReady: boolean;
   isDetecting: boolean;
   fps: number;
-  detectedSign: string;
+  detectedSign: string | null;
   confidence: number;
   landmarks: HandLandmark[] | null;
-  fingerState: {
-    thumb: boolean;
-    index: boolean;
-    middle: boolean;
-    ring: boolean;
-    pinky: boolean;
-  };
+  handCount: number;
+  statusText: string;
+  isModelLoaded: boolean;
   error: string | null;
 }
 
@@ -39,11 +42,13 @@ export function useMediaPipeHands(
     isReady: false,
     isDetecting: false,
     fps: 0,
-    detectedSign: '',
+    detectedSign: null,
     confidence: 0,
     landmarks: null,
-    fingerState: { thumb: false, index: false, middle: false, ring: false, pinky: false },
-    error: null
+    handCount: 0,
+    statusText: 'Position your hand inside the frame.',
+    isModelLoaded: false,
+    error: null,
   });
 
   const handsInstanceRef = useRef<any>(null);
@@ -52,7 +57,29 @@ export function useMediaPipeHands(
   const lastFpsTimeRef = useRef(Date.now());
   const isProcessingRef = useRef(false);
 
-  // 1. Load MediaPipe script dynamically if not present
+  // 1. Check backend model status on initialization
+  useEffect(() => {
+    let isMounted = true;
+    async function checkModelStatus() {
+      try {
+        const res = await fetch('/api/translate/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setState(s => ({ ...s, isModelLoaded: !!data.model_loaded }));
+          }
+        }
+      } catch (_) {
+        // Backend offline or unreachable
+      }
+    }
+    checkModelStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Load MediaPipe Hands dynamically
   useEffect(() => {
     let isMounted = true;
 
@@ -71,22 +98,21 @@ export function useMediaPipeHands(
 
         if (!isMounted) return;
 
-        // Initialize Hands solution
         const hands = new window.Hands({
-          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
         });
 
         hands.setOptions({
           maxNumHands: 2,
           modelComplexity: 1,
           minDetectionConfidence: 0.65,
-          minTrackingConfidence: 0.6
+          minTrackingConfidence: 0.6,
         });
 
         hands.onResults((results: any) => {
           if (!isMounted) return;
 
-          // FPS counter
+          // FPS calculation
           frameCountRef.current++;
           const now = Date.now();
           if (now - lastFpsTimeRef.current >= 1000) {
@@ -103,39 +129,43 @@ export function useMediaPipeHands(
           const ctx = canvas.getContext('2d');
           if (!ctx) return;
 
-          // Match canvas dimensions to video
           if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;
           }
 
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const handsList = results.multiHandLandmarks;
+          const handCount = handsList ? handsList.length : 0;
 
-          if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            const firstHand = results.multiHandLandmarks[0] as HandLandmark[];
-            
-            // Classify gesture
-            const classification = classifyHandGesture(firstHand);
+          if (handCount > 0) {
+            const primaryHand = handsList[0] as HandLandmark[];
 
-            // Draw holographic skeleton
-            drawFuturisticSkeleton(ctx, firstHand, canvas.width, canvas.height, classification.sign);
+            // Draw SignX Green Reticle & Hand Skeleton
+            drawSignXReticle(ctx, primaryHand, canvas.width, canvas.height);
+
+            // Extract normalized 63-d feature vector
+            const normalizedFeatures = extractNormalizedFeatures(primaryHand);
 
             setState(s => ({
               ...s,
               isDetecting: true,
-              detectedSign: classification.sign,
-              confidence: Math.round(classification.confidence * 100),
-              landmarks: firstHand,
-              fingerState: classification.fingers
+              handCount,
+              landmarks: primaryHand,
+              statusText: s.isModelLoaded 
+                ? 'Hand tracked — Analyzing ISL kinematics...'
+                : 'Hand tracked • Awaiting verified ISL weights (signx_model.h5)',
             }));
           } else {
+            // No hands visible in frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             setState(s => ({
               ...s,
               isDetecting: false,
-              detectedSign: '',
-              confidence: 0,
+              handCount: 0,
               landmarks: null,
-              fingerState: { thumb: false, index: false, middle: false, ring: false, pinky: false }
+              detectedSign: null,
+              confidence: 0,
+              statusText: 'Waiting for sign... Position hand in frame.',
             }));
           }
         });
@@ -158,38 +188,44 @@ export function useMediaPipeHands(
         } catch (_) {}
       }
     };
-  }, [canvasRef, videoRef]);
+  }, [videoRef, canvasRef]);
 
-  // 2. Video frame dispatch loop
+  // 3. Connect Video Stream to MediaPipe Hands
   useEffect(() => {
-    let animId: number;
-
-    const processFrame = async () => {
-      const video = videoRef.current;
-      const hands = handsInstanceRef.current;
-
-      if (isActive && video && video.readyState >= 2 && hands && !isProcessingRef.current) {
+    if (!isActive || !state.isReady || !videoRef.current || !handsInstanceRef.current) {
+      if (cameraInstanceRef.current) {
         try {
-          isProcessingRef.current = true;
-          await hands.send({ image: video });
-        } catch (err) {
-          // ignore dropped frames
+          cameraInstanceRef.current.stop();
+        } catch (_) {}
+      }
+      return;
+    }
+
+    let isRunning = true;
+
+    async function sendFrameLoop() {
+      if (!isRunning || !isActive || !videoRef.current || !handsInstanceRef.current) return;
+
+      if (videoRef.current.readyState >= 2 && !isProcessingRef.current) {
+        isProcessingRef.current = true;
+        try {
+          await handsInstanceRef.current.send({ image: videoRef.current });
+        } catch (e) {
+          // Frame send failure or video paused
         } finally {
           isProcessingRef.current = false;
         }
       }
 
-      if (isActive) {
-        animId = requestAnimationFrame(processFrame);
+      if (isRunning && isActive) {
+        requestAnimationFrame(sendFrameLoop);
       }
-    };
-
-    if (isActive && state.isReady) {
-      animId = requestAnimationFrame(processFrame);
     }
 
+    sendFrameLoop();
+
     return () => {
-      if (animId) cancelAnimationFrame(animId);
+      isRunning = false;
     };
   }, [isActive, state.isReady, videoRef]);
 

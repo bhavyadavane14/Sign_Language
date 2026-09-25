@@ -5,122 +5,83 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+        // SignX Warm Cream & Off-White Design System
+        cream: {
+          50: '#FFFDF9',
+          100: '#FAF7F2',
+          200: '#F5EFEB',
+          300: '#EFE7E0',
+          400: '#E5DCD3',
+          500: '#D5C9BD',
         },
-        accent: {
-          50: '#fdf4ff',
-          100: '#fae8ff',
-          200: '#f5d0fe',
-          300: '#f0abfc',
-          400: '#e879f9',
-          500: '#d946ef',
-          600: '#c026d3',
-          700: '#a21caf',
-          800: '#86198f',
-          900: '#701a75',
+        // Primary SignX Vibrant Coral / Orange Accent
+        coral: {
+          50: '#FFF5F0',
+          100: '#FEECE5',
+          200: '#FDD5C6',
+          300: '#FBB79E',
+          400: '#F78A65',
+          500: '#EB6238', // Primary CTA button & badge color
+          600: '#D84E25',
+          700: '#B63A17',
+          800: '#922F15',
+          900: '#772813',
         },
-        surface: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          700: '#1e293b',
-          800: '#0f172a',
-          900: '#020617',
+        // Secondary Deep Forest / Emerald Green Accent
+        forest: {
+          50: '#F0F7F4',
+          100: '#DCEDE5',
+          200: '#BCDEC0',
+          300: '#92C7A9',
+          400: '#52A67B',
+          500: '#2D7A54',
+          600: '#226042',
+          700: '#1B4D35', // Primary dark green branding
+          800: '#163E2B',
+          900: '#113021',
+        },
+        // Dark Charcoal / Typography
+        charcoal: {
+          900: '#181C1B',
+          800: '#242A28',
+          700: '#353D3A',
+          600: '#4D5653',
+          500: '#697470',
+          400: '#8E9995',
+          300: '#B8C2BF',
+          200: '#DCE2E0',
+          100: '#EFF2F1',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        handwriting: ['Caveat', 'cursive', 'sans-serif'],
       },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'float-delayed': 'float 6s ease-in-out 2s infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'shimmer': 'shimmer 2s linear infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'gradient': 'gradient 8s ease infinite',
-        'slide-up': 'slideUp 0.5s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-        'fade-in': 'fadeIn 0.6s ease-out',
-        'scale-in': 'scaleIn 0.3s ease-out',
-        'hand-wave': 'handWave 2.5s ease-in-out infinite',
-        'border-flow': 'borderFlow 3s ease infinite',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
-        glow: {
-          '0%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)' },
-          '100%': { boxShadow: '0 0 40px rgba(99, 102, 241, 0.6)' },
-        },
-        shimmer: {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
-        gradient: {
-          '0%, 100%': { backgroundPosition: '0% 50%' },
-          '50%': { backgroundPosition: '100% 50%' },
-        },
-        slideUp: {
-          '0%': { transform: 'translateY(30px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        slideDown: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        scaleIn: {
-          '0%': { transform: 'scale(0.95)', opacity: '0' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
-        },
-        handWave: {
-          '0%': { transform: 'rotate(0deg)' },
-          '10%': { transform: 'rotate(14deg)' },
-          '20%': { transform: 'rotate(-8deg)' },
-          '30%': { transform: 'rotate(14deg)' },
-          '40%': { transform: 'rotate(-4deg)' },
-          '50%': { transform: 'rotate(10deg)' },
-          '60%, 100%': { transform: 'rotate(0deg)' },
-        },
-        borderFlow: {
-          '0%, 100%': { borderColor: 'rgba(99, 102, 241, 0.5)' },
-          '50%': { borderColor: 'rgba(217, 70, 239, 0.5)' },
-        },
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'hero-pattern': 'radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.15) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(217, 70, 239, 0.1) 0%, transparent 50%)',
-        'mesh-gradient': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        'glass': 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
-      },
-      backdropBlur: {
-        xs: '2px',
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.5rem',
+        '4xl': '2rem',
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(99, 102, 241, 0.3)',
-        'glow-lg': '0 0 40px rgba(99, 102, 241, 0.4)',
-        'glow-accent': '0 0 20px rgba(217, 70, 239, 0.3)',
-        'inner-glow': 'inset 0 1px 0 rgba(255,255,255,0.1)',
-        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.05)',
-        'card-hover': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 20px 40px -10px rgba(0, 0, 0, 0.1)',
+        'card': '0 8px 30px -4px rgba(27, 45, 35, 0.06), 0 4px 12px -2px rgba(27, 45, 35, 0.03)',
+        'card-hover': '0 14px 40px -4px rgba(235, 98, 56, 0.12), 0 6px 18px -2px rgba(27, 45, 35, 0.05)',
+        'btn': '0 6px 20px -2px rgba(235, 98, 56, 0.35)',
+        'btn-forest': '0 6px 20px -2px rgba(27, 77, 53, 0.3)',
+      },
+      keyframes: {
+        pulseSlow: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.8', transform: 'scale(1.03)' },
+        },
+        floatSubtle: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+      },
+      animation: {
+        'pulse-slow': 'pulseSlow 3s ease-in-out infinite',
+        'float-subtle': 'floatSubtle 4s ease-in-out infinite',
       },
     },
   },

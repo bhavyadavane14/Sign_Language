@@ -1,83 +1,99 @@
 import React from 'react';
-import { Heart, Sparkles, Brain, ShieldCheck, Users, Eye, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ChevronLeft, Mail, Star, Heart, ExternalLink, ShieldCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import signxLogo from '../assets/signx_logo.png';
 
 export default function About() {
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-surface-900 text-white font-sans pt-20 pb-16 px-4 sm:px-6 lg:px-8">
-      {/* Background Ambience */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="orb orb-1 opacity-20"></div>
-        <div className="orb orb-2 opacity-15"></div>
-      </div>
+    <div className="min-h-screen bg-[#FAF7F2] text-charcoal-900 font-sans flex flex-col justify-between select-none">
+      
+      {/* Top Header matching Screen 10: Back Arrow + "About SignX" */}
+      <header className="sticky top-0 z-40 bg-[#FAF7F2]/90 backdrop-blur-md border-b border-cream-300 px-4 py-3 sm:px-6">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/translator')}
+              aria-label="Back to home"
+              className="w-10 h-10 rounded-2xl bg-white border border-cream-300 flex items-center justify-center text-charcoal-700 hover:text-coral-500 transition-all shadow-sm active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-extrabold text-charcoal-900 font-display">
+              About SignX
+            </h1>
+          </div>
+        </div>
+      </header>
 
-      <div className="max-w-5xl mx-auto relative z-10 space-y-10">
+      {/* Main Content matching Screen 10 */}
+      <main className="flex-1 w-full max-w-md mx-auto px-6 py-6 flex flex-col items-center text-center space-y-6">
         
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30">
-            <Sparkles className="w-3.5 h-3.5 text-accent-400" /> Bridging Two Worlds
-          </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold tracking-tight">
-            About <span className="text-gradient">SIGNX</span>
-          </h1>
-          <p className="text-base sm:text-lg text-white/60 leading-relaxed">
-            SIGNX is an assistive artificial intelligence platform created to break language and hearing barriers for over 18 million Deaf & Hard-of-Hearing individuals across India.
-          </p>
-        </div>
-
-        {/* Pillars Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card p-8 rounded-3xl border border-white/10 bg-white/5 space-y-4 hover:border-brand-500/40 transition-colors">
-            <div className="w-12 h-12 rounded-2xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
-              <Heart className="w-6 h-6" />
-            </div>
-            <h3 className="text-2xl font-display font-bold text-white">Our Mission</h3>
-            <p className="text-sm text-white/60 leading-relaxed">
-              Empowering frictionless two-way conversations between Deaf and hearing citizens in everyday life, healthcare, education, and public administrative centers.
-            </p>
+        {/* Emblem & Branding matching Screen 10 */}
+        <div className="flex flex-col items-center space-y-3 pt-2">
+          <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-white border border-cream-300 p-3 shadow-card flex items-center justify-center hover:scale-105 transition-transform">
+            <img 
+              src={signxLogo} 
+              alt="SignX Official Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
 
-          <div className="glass-card p-8 rounded-3xl border border-white/10 bg-white/5 space-y-4 hover:border-accent-500/40 transition-colors">
-            <div className="w-12 h-12 rounded-2xl bg-accent-500/20 border border-accent-500/30 flex items-center justify-center text-accent-400">
-              <Brain className="w-6 h-6" />
+          <div>
+            <div className="flex items-center justify-center">
+              <span className="text-3xl font-extrabold text-charcoal-900 font-display">Sign</span>
+              <span className="text-4xl font-black bg-gradient-to-br from-coral-500 to-forest-700 bg-clip-text text-transparent font-display">
+                X
+              </span>
             </div>
-            <h3 className="text-2xl font-display font-bold text-white">Edge AI Pipeline</h3>
-            <p className="text-sm text-white/60 leading-relaxed">
-              Real-time Google MediaPipe spatial keypoint detection coupled with Convolutional Neural Networks, processing gesture kinematics at 30+ frames per second.
-            </p>
-          </div>
-
-          <div className="glass-card p-8 rounded-3xl border border-white/10 bg-white/5 space-y-4 hover:border-cyan-500/40 transition-colors">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <h3 className="text-2xl font-display font-bold text-white">Privacy First</h3>
-            <p className="text-sm text-white/60 leading-relaxed">
-              Optical feeds never leave the client device without consent. Spatial landmark extraction runs directly in the browser's GPU context for absolute privacy.
+            <p className="text-xs font-mono text-charcoal-500 font-semibold mt-0.5">
+              Version 1.0.0
             </p>
           </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="glass-card p-8 md:p-12 rounded-3xl border border-white/15 bg-gradient-to-r from-brand-900/40 via-surface-900 to-accent-900/40 text-center space-y-6">
-          <h2 className="text-3xl font-display font-bold text-white">
-            Experience the Future of Inclusive Communication
-          </h2>
-          <p className="text-sm text-white/60 max-w-xl mx-auto">
-            Test the real-time AI Sign Studio directly with your webcam or explore the official Indian Sign Language curriculum.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <Link to="/translator" className="btn-primary px-8 py-3.5 rounded-2xl text-sm font-semibold flex items-center gap-2">
-              Launch Studio <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link to="/learn" className="btn-secondary px-8 py-3.5 rounded-2xl text-sm font-semibold">
-              Explore ISL Catalog
-            </Link>
-          </div>
+        {/* Mission Statement matching Screen 10 */}
+        <p className="text-xs sm:text-sm text-charcoal-600 leading-relaxed max-w-xs">
+          Empowering communication through AI-powered sign language translation. Let's build a more inclusive world together.
+        </p>
+
+        {/* Card matching Screen 10: "♥ Different Hands Same World" */}
+        <div className="w-full p-4 rounded-3xl bg-cream-50 border border-coral-200/80 shadow-sm flex items-center justify-center gap-2.5">
+          <Heart className="w-5 h-5 text-coral-500 fill-coral-500" />
+          <span className="text-sm font-bold text-charcoal-800 font-display">
+            Different Hands Same World
+          </span>
         </div>
 
-      </div>
+        {/* Action Links matching Screen 10: [Contact Us] [Rate the App] */}
+        <div className="w-full space-y-2.5 pt-2">
+          
+          <button
+            onClick={() => alert("Contact SignX Team: support@signx.in | New Delhi, India")}
+            className="w-full p-3.5 bg-white rounded-2xl border border-cream-300 text-charcoal-800 font-semibold text-xs flex items-center gap-3 hover:border-coral-300 transition-all shadow-sm active:scale-[0.99]"
+          >
+            <Mail className="w-4 h-4 text-coral-500" />
+            <span>Contact Us</span>
+          </button>
+
+          <button
+            onClick={() => alert("Thank you for your 5-star support for Indian Sign Language accessibility!")}
+            className="w-full p-3.5 bg-white rounded-2xl border border-cream-300 text-charcoal-800 font-semibold text-xs flex items-center gap-3 hover:border-coral-300 transition-all shadow-sm active:scale-[0.99]"
+          >
+            <Star className="w-4 h-4 text-amber-500" />
+            <span>Rate the App</span>
+          </button>
+
+        </div>
+
+      </main>
+
+      {/* Footer Banner */}
+      <footer className="py-4 text-center border-t border-cream-200 text-xs text-charcoal-500 font-medium">
+        <span className="font-hand text-coral-600 text-base font-bold">Inclusion Looks Good on Everyone ♥</span>
+      </footer>
+
     </div>
   );
 }

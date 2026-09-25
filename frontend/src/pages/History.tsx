@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import HistoryCard from '../components/HistoryCard';
+import { ChevronLeft, Volume2, Trash2, Clock, RotateCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { historyService } from '../services/historyService';
 import { TranslationHistory } from '../types/translation';
-import { Search, Clock, Sparkles, Trash2 } from 'lucide-react';
 
 export default function History() {
+  const navigate = useNavigate();
   const [history, setHistory] = useState<TranslationHistory[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isPlayingId, setIsPlayingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();
@@ -15,117 +16,160 @@ export default function History() {
   const loadHistory = async () => {
     try {
       const data = await historyService.getHistory();
-      if (data && data.length > 0) {
-        setHistory(data);
-      } else {
-        // Pre-populate with realistic samples if empty so the user sees a rich interface
-        setHistory([
-          {
-            id: '1',
-            signText: 'HELLO HOW ARE YOU',
-            translatedText: 'Hello, how are you doing today?',
-            language: 'en-IN',
-            timestamp: new Date(Date.now() - 3600000).toISOString()
-          },
-          {
-            id: '2',
-            signText: 'GOOD MORNING FRIEND',
-            translatedText: 'Good morning my friend.',
-            language: 'en-IN',
-            timestamp: new Date(Date.now() - 7200000).toISOString()
-          },
-          {
-            id: '3',
-            signText: 'I LOVE YOU',
-            translatedText: 'I love you.',
-            language: 'en-IN',
-            timestamp: new Date(Date.now() - 86400000).toISOString()
-          }
-        ]);
-      }
-    } catch (_) {}
+      setHistory(data || []);
+    } catch (_) {
+      setHistory([]);
+    }
   };
 
   const handleDelete = async (id: string) => {
     await historyService.deleteHistoryItem(id);
-    setHistory(prev => prev.filter(item => item.id !== id));
+    setHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
+    await historyService.clearHistory();
     setHistory([]);
   };
 
-  const filteredHistory = history.filter(item => 
-    item.signText.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.translatedText.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleSpeak = (item: TranslationHistory) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const textToSpeak = item.translatedText || item.signText;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.rate = 0.95;
+    utterance.lang = 'en-IN';
+    utterance.onstart = () => setIsPlayingId(item.id);
+    utterance.onend = () => setIsPlayingId(null);
+    utterance.onerror = () => setIsPlayingId(null);
+    window.speechSynthesis.speak(utterance);
+  };
 
   return (
-    <div className="min-h-screen bg-surface-900 text-white font-sans pt-20 pb-16 px-4 sm:px-6 lg:px-8">
-      {/* Background Ambience */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="orb orb-1 opacity-20"></div>
-        <div className="orb orb-2 opacity-15"></div>
-      </div>
-
-      <div className="max-w-4xl mx-auto relative z-10 space-y-6">
-        
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-white/10">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-accent-400" /> Translation Ledger
-              </span>
-            </div>
-            <h1 className="text-3xl md:text-5xl font-display font-extrabold tracking-tight">
-              Session <span className="text-gradient">History</span>
+    <div className="min-h-screen bg-[#FAF7F2] text-charcoal-900 font-sans flex flex-col justify-between">
+      
+      {/* Top Header matching Screen 8: Back Arrow + "Translation History" */}
+      <header className="sticky top-0 z-40 bg-[#FAF7F2]/90 backdrop-blur-md border-b border-cream-300 px-4 py-3 sm:px-6">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/translator')}
+              aria-label="Back to home"
+              className="w-10 h-10 rounded-2xl bg-white border border-cream-300 flex items-center justify-center text-charcoal-700 hover:text-coral-500 transition-all shadow-sm active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-extrabold text-charcoal-900 font-display">
+              Translation History
             </h1>
-            <p className="text-sm md:text-base text-white/50 mt-1">
-              Review and re-listen to your historical Indian Sign Language communication logs.
-            </p>
           </div>
 
-          {history.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className="glass px-4 py-2 rounded-xl border border-white/10 hover:bg-red-500/20 text-white/60 hover:text-red-300 text-xs font-semibold flex items-center gap-2 transition-colors self-start sm:self-auto"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Clear All History
-            </button>
-          )}
+          <span className="text-xs font-mono text-charcoal-500">
+            {history.length} {history.length === 1 ? 'entry' : 'entries'}
+          </span>
         </div>
+      </header>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="Search through past recognized signs or translations..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input-glass pl-11 pr-4 py-3 rounded-2xl text-sm"
-          />
-        </div>
+      {/* Main History List matching Screen 8 */}
+      <main className="flex-1 w-full max-w-md mx-auto px-4 py-4 space-y-3">
+        
+        {history.length > 0 ? (
+          history.map((item) => {
+            const dateStr = new Date(item.timestamp).toLocaleString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
 
-        {/* History List */}
-        <div className="space-y-4">
-          {filteredHistory.map(entry => (
-            <HistoryCard key={entry.id} entry={entry} onDelete={handleDelete} />
-          ))}
+            return (
+              <div
+                key={item.id}
+                className="p-3.5 bg-white rounded-2xl border border-cream-300 shadow-sm flex items-center justify-between gap-3 hover:border-coral-200 transition-all"
+              >
+                {/* Left Thumbnail/Avatar matching Screen 8 */}
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral-100 to-forest-50 border border-cream-200 flex items-center justify-center text-coral-600 font-black text-sm shrink-0">
+                  {(item.translatedText || item.signText).slice(0, 2).toUpperCase()}
+                </div>
 
-          {filteredHistory.length === 0 && (
-            <div className="glass-card p-12 rounded-3xl border border-white/10 bg-white/5 text-center flex flex-col items-center justify-center space-y-3">
-              <Clock className="w-12 h-12 text-white/20" />
-              <h3 className="text-lg font-bold text-white">No history records found</h3>
-              <p className="text-xs text-white/40 max-w-xs">
-                Perform translations in the Real-Time Studio to automatically log signs here.
+                {/* Content: Title & Timestamp */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold text-charcoal-900 truncate font-display">
+                    {item.translatedText || item.signText}
+                  </h3>
+                  <div className="flex items-center gap-1 text-[11px] text-charcoal-500 mt-0.5">
+                    <Clock className="w-3 h-3 text-charcoal-400" />
+                    <span>{dateStr}</span>
+                  </div>
+                </div>
+
+                {/* Right Actions: Replay Audio & Delete */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleSpeak(item)}
+                    aria-label="Replay audio"
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                      isPlayingId === item.id 
+                        ? 'bg-forest-700 text-white animate-pulse' 
+                        : 'bg-cream-100 hover:bg-cream-200 text-charcoal-700'
+                    }`}
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    aria-label="Delete entry"
+                    className="w-9 h-9 rounded-xl bg-cream-100 hover:bg-coral-50 hover:text-coral-600 text-charcoal-500 flex items-center justify-center transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          /* Authentic Empty State (No permanent fake history) */
+          <div className="p-8 text-center bg-white rounded-3xl border border-cream-300 space-y-3 shadow-sm my-8">
+            <div className="w-12 h-12 rounded-2xl bg-cream-100 text-charcoal-400 flex items-center justify-center mx-auto">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-charcoal-900 font-display">No History Yet</h3>
+              <p className="text-xs text-charcoal-500 mt-1 max-w-xs mx-auto leading-relaxed">
+                Translations you capture in the live studio will appear here automatically with genuine timestamped logs.
               </p>
             </div>
-          )}
-        </div>
+            <button
+              onClick={() => navigate('/translator')}
+              className="py-2.5 px-5 rounded-2xl bg-coral-500 text-white font-semibold text-xs shadow-btn hover:bg-coral-600 transition-colors"
+            >
+              Start Translating
+            </button>
+          </div>
+        )}
 
-      </div>
+        {/* Clear History Button matching Screen 8: "🗑 Clear History" */}
+        {history.length > 0 && (
+          <div className="pt-4 flex justify-center">
+            <button
+              onClick={handleClearAll}
+              className="px-5 py-2.5 rounded-2xl bg-white border border-coral-200 text-coral-600 hover:bg-coral-50 text-xs font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Clear History</span>
+            </button>
+          </div>
+        )}
+
+      </main>
+
+      {/* Footer */}
+      <footer className="py-3 text-center border-t border-cream-200 text-[11px] text-charcoal-500 font-medium">
+        Encrypted Local & Session Storage Policy
+      </footer>
+
     </div>
   );
 }
