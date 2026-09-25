@@ -1,0 +1,7 @@
+# Live ISL Bi-LSTM inference
+numpy
+opencv-python
+mediapipe
+torch
+
+# The existing full SIGNX backend dependencies remain in backend/requirements.txt.

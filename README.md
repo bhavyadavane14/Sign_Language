@@ -1,99 +1,110 @@
-# SIGNX: AI Indian Sign Language Translator
+# SIGNX: Indian Sign Language Translator
 
 ## Overview
-SIGNX is an advanced AI-powered platform designed to translate Indian Sign Language (ISL) into text and speech in real-time. By leveraging computer vision and deep learning, SIGNX aims to bridge the communication gap between the Deaf and hard-of-hearing community and the broader society in India.
 
-## Problem Statement
-Over 18 million people in India are Deaf or hard of hearing, and Indian Sign Language (ISL) is their primary mode of communication. However, the vast majority of the hearing population does not understand ISL, creating significant barriers in education, healthcare, employment, and daily social interactions.
+SIGNX is an Indian Sign Language (ISL) translation platform with a Bi-LSTM landmark classifier and a web application. This repository includes the finalized CPU live-inference pipeline for the trained 61-class ISL model.
 
-## Solution
-SIGNX utilizes computer vision (MediaPipe) and deep learning (TensorFlow/Keras CNN) to recognize ISL gestures in real-time via a standard webcam. It translates these gestures into readable text and synthesized speech, facilitating seamless two-way communication.
+The live pipeline is designed for parity with the original training preprocessing. It does not retrain, alter, or replace the trained model.
 
-## Features
-- **Real-time ISL Recognition**: Translates ISL alphabet (A-Z) and digits (0-9) instantly.
-- **Computer Vision Pipeline**: Uses MediaPipe for robust hand landmark extraction.
-- **Deep Learning Model**: Custom-trained CNN for high-accuracy gesture classification.
-- **Text-to-Speech (TTS)**: Converts translated signs into spoken audio.
-- **AI Chatbot Assistant**: Powered by Gemini API for contextual assistance.
-- **User Authentication & History**: Secure login, translation history, and user preferences.
+## Bi-LSTM Model
 
-## Architecture
-```mermaid
-graph TD
-    A[Camera Input] --> B[MediaPipe Hand Landmarks]
-    B --> C[Feature Extraction & Normalization]
-    C --> D[CNN Model TensorFlow]
-    D --> E[Class Prediction A-Z, 0-9]
-    E --> F[Text Output]
-    F --> G[Text-to-Speech Audio]
+- Input sequence: `(32, 225)`
+- 32 uniformly sampled frames per video
+- Features per frame: left hand `21 x 3` (63), right hand `21 x 3` (63), pose `33 x 3` (99)
+- Total features per frame: 225
+- Model: 2-layer bidirectional LSTM
+- Hidden size: 128
+- Dropout: 0.3
+- Output classes: 61
+- Reported held-out landmark test accuracy: **98.35%**
+
+The test accuracy is measured on the saved landmark test set. It does not guarantee the same accuracy for webcam footage.
+
+## Dataset and Training Approach
+
+The source dataset is organized as class-labelled ISL videos. The original training pipeline independently processes each selected video frame with MediaPipe Tasks API:
+
+1. Sample 32 frame indices uniformly with `np.linspace`.
+2. Convert each BGR frame to RGB and create an `mp.Image` using `SRGB`.
+3. Run HandLandmarker and PoseLandmarker in `IMAGE` mode.
+4. Concatenate `left_hand.flatten()`, `right_hand.flatten()`, and `pose.flatten()`.
+5. Zero-fill missing landmarks to produce exactly 225 features.
+6. Normalize with the saved `landmark_mean.npy` and `landmark_std.npy`.
+7. Feed the normalized `(32, 225)` sequence to the Bi-LSTM and apply softmax.
+
+Raw videos and unnecessary dataset archives are intentionally not included in this repository.
+
+## Live Inference Pipeline
+
+The finalized pipeline is at `model/isl_bilstm/live_test.py`. It:
+
+- Uses MediaPipe `RunningMode.IMAGE` and `detect()` with no timestamps.
+- Keeps the camera frame unflipped for inference.
+- Shows an optional mirrored preview using a separate display copy.
+- Captures one sign after pressing Space.
+- Collects at least 32 frames within a bounded 3 to 4 second window.
+- Uniformly samples exactly 32 frames.
+- Re-extracts landmarks independently from those sampled frames.
+- Validates shape, NaN/Inf values, normalization files, and class mapping.
+- Loads the saved model with strict state-dict loading.
+- Displays the predicted sign, confidence, and top-3 predictions.
+- Rejects predictions below the configurable 60% confidence threshold as `Uncertain / No reliable sign`.
+- Prints debug statistics when `DEBUG_MODE = True`.
+
+Webcam testing depends on successful OpenCV camera access and suitable lighting, framing, and landmark visibility. The confidence threshold is conservative but does not guarantee live accuracy.
+
+## Local Setup
+
+Prerequisites:
+
+- Python 3.11+
+- A working webcam for live testing
+- Windows, Linux, or macOS with OpenCV camera access
+
+Create and activate a virtual environment, then install the live inference dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-## Technology Stack
-- **Frontend**: React, Vite, Tailwind CSS
-- **Backend**: FastAPI (Python 3.11)
-- **Machine Learning**: TensorFlow/Keras, MediaPipe, OpenCV
-- **Database**: PostgreSQL
-- **AI Integration**: Google Gemini API
-- **Infrastructure**: Docker, Docker Compose
-- **CI/CD**: GitHub Actions
+The repository also contains the SIGNX frontend and backend. Their separate setup and environment files remain under `frontend/` and `backend/`.
+
+## Run Live Inference
+
+From the repository root:
+
+```powershell
+python model/isl_bilstm/live_test.py
+```
+
+Or from the model directory:
+
+```powershell
+cd model/isl_bilstm
+python live_test.py
+```
+
+Press `SPACE` to capture a sign. Press `Q` or `ESC` to exit. The program will print the preprocessing and MediaPipe detection diagnostics after each capture.
 
 ## Project Structure
-```
+
+```text
 SIGNX/
-├── backend/            # FastAPI backend application
-├── frontend/           # React frontend application
-├── model/              # ML model resources and weights
-├── database/           # SQL schemas and seed data
-├── docs/               # Detailed project documentation
-├── tests/              # Automated tests (Pytest, etc.)
-├── .github/workflows/  # CI/CD pipelines
-├── docker-compose.yml  # Docker infrastructure definition
-└── README.md           # Project overview and setup
+├── backend/                 # FastAPI backend
+├── frontend/                # React frontend
+├── model/
+│   ├── isl_bilstm/          # Finalized live Bi-LSTM inference package
+│   ├── labels/              # Existing application labels
+│   └── preprocessing/       # Model preprocessing documentation
+├── database/                # Database schema and seed data
+├── docs/                    # Project documentation
+├── tests/                   # Automated tests
+├── requirements.txt         # Live Bi-LSTM inference dependencies
+└── README.md
 ```
 
-## Installation & Setup
+## Existing Application
 
-### Prerequisites
-- Docker and Docker Compose installed
-- Python 3.11+
-- Node.js 18+
-
-### Environment Setup
-1. Clone the repository.
-2. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-3. Update `.env` with your actual secrets, particularly the `GEMINI_API_KEY`.
-
-### Model Setup
-The trained `.h5` model is not included in this repository due to size constraints.
-1. Download `signx_model.h5` from the provided Google Drive link.
-2. Place the file in `model/weights/signx_model.h5`.
-
-### Running with Docker
-```bash
-docker-compose up --build
-```
-This will start:
-- Frontend on `http://localhost:5173`
-- Backend on `http://localhost:8000`
-- PostgreSQL on port `5432`
-
-## Documentation Reference
-- [Architecture](docs/ARCHITECTURE.md)
-- [API Documentation](docs/API.md)
-- [Model Details](docs/MODEL.md)
-- [ISL Resources](docs/ISL.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Contributing](docs/CONTRIBUTING.md)
-
-## Future Scope
-- Expand vocabulary to include dynamic word-level gestures.
-- Support multi-lingual text and speech output (Hindi, regional languages).
-- Deploy as a mobile application for greater accessibility.
-
-## Contributors
-- AI/ML Team
-- Backend Team
-- Frontend Team
+The broader SIGNX application includes a React frontend, FastAPI backend, authentication, translation history, speech services, and database integration. Refer to the relevant directories and documentation for those components.
