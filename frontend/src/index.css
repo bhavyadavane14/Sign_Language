@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth antialiased;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    @apply bg-cream-100 text-charcoal-900 min-h-screen;
+    background-color: #FAF7F2;
+    background-image: 
+      radial-gradient(circle at 10% 15%, rgba(235, 98, 56, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(27, 77, 53, 0.04) 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #FAF7F2;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #E5DCD3;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #D5C9BD;
+  }
+}
+
+@layer components {
+  /* SignX Primary Card */
+  .signx-card {
+    @apply bg-white rounded-3xl border border-cream-300/80 shadow-card transition-all duration-300;
+  }
+
+  .signx-card-hover {
+    @apply signx-card hover:shadow-card-hover hover:border-coral-300/60;
+  }
+
+  /* Coral Primary Action Button */
+  .btn-coral {
+    @apply relative inline-flex items-center justify-center font-semibold text-white 
+    bg-gradient-to-r from-coral-500 to-coral-600 rounded-2xl shadow-btn 
+    transition-all duration-200 hover:from-coral-600 hover:to-coral-700 
+    hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Forest Green Secondary Action Button */
+  .btn-forest {
+    @apply relative inline-flex items-center justify-center font-semibold text-white 
+    bg-forest-700 rounded-2xl shadow-btn-forest 
+    transition-all duration-200 hover:bg-forest-800 
+    active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Soft Light Outline Button */
+  .btn-cream {
+    @apply inline-flex items-center justify-center font-semibold text-charcoal-800 
+    bg-white border border-cream-300 rounded-2xl 
+    transition-all duration-200 hover:bg-cream-50 hover:border-cream-400 
+    active:scale-[0.98];
+  }
+
+  /* Interactive Category / Mode Pill */
+  .pill-tab {
+    @apply px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 
+    cursor-pointer select-none;
+  }
+
+  .pill-tab-active {
+    @apply pill-tab bg-coral-500 text-white shadow-sm;
+  }
+
+  .pill-tab-inactive {
+    @apply pill-tab bg-cream-200/80 text-charcoal-600 hover:bg-cream-300/80 hover:text-charcoal-900;
+  }
+
+  /* Soft Rounded Input */
+  .signx-input {
+    @apply w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-charcoal-900 
+    placeholder-charcoal-400 focus:outline-none focus:ring-2 focus:ring-coral-500/40 
+    focus:border-coral-500 transition-all text-sm;
+  }
+
+  /* Handwriting cursive text accent */
+  .font-hand {
+    font-family: 'Caveat', cursive;
+  }
+}

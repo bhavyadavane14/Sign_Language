@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SignX ISL Translator</string>
+    <string name="title_activity_main">SignX ISL Translator</string>
+    <string name="package_name">com.signx.translator</string>
+    <string name="custom_url_scheme">com.signx.translator</string>
+</resources>
