@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { 
-  Camera, CameraOff, Volume2, Image as ImageIcon, 
-  RotateCw, RefreshCw, MessageSquare, AlertCircle, Sparkles, Check, Info
+  Camera, CameraOff, Volume2, Volume1, Image as ImageIcon, 
+  RotateCw, RefreshCw, MessageSquare, AlertCircle, Sparkles, Check, Info, Youtube
 } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
 import { useMediaPipeHands } from '../hooks/useMediaPipeHands';
@@ -254,29 +254,6 @@ export default function Translator() {
                 </div>
               </div>
 
-              {/* Verified ISL Standards & Architecture Card */}
-              <div className="signx-card p-5 bg-cream-50 border border-cream-300/80 shadow-sm space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-forest-100 text-forest-700 flex items-center justify-center">
-                    <Info className="w-4 h-4" />
-                  </div>
-                  <h4 className="text-xs font-bold text-charcoal-900 uppercase tracking-wider font-display">
-                    Indian Sign Language Integrity
-                  </h4>
-                </div>
-
-                <p className="text-xs text-charcoal-600 leading-relaxed">
-                  SignX uses <strong>Google MediaPipe Hands</strong> for 21-point spatial coordinate extraction. Neural classification is strictly decoupled and requires verified ISL model weights trained on the <strong>ISLRTC / INCLUDE</strong> corpus. No signs or accuracies are simulated.
-                </p>
-
-                <div className="pt-1 flex items-center justify-between text-[11px] font-semibold text-charcoal-500 border-t border-cream-200">
-                  <span>Standard: ISLRTC 10k Terms</span>
-                  <span className={isModelLoaded ? "text-forest-700" : "text-amber-700"}>
-                    Model: {isModelLoaded ? "Loaded" : "Weights Pending"}
-                  </span>
-                </div>
-              </div>
-
               {/* Quick Navigation to Learn ISL */}
               <div className="p-4 rounded-2xl bg-white border border-cream-300 flex items-center justify-between shadow-sm">
                 <div>
@@ -307,6 +284,112 @@ export default function Translator() {
         )}
 
       </main>
+
+      {/* Secondary explanation of the translation flow */}
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-8" aria-labelledby="how-it-works-heading">
+        <div className="mb-4 text-center">
+          <h2 id="how-it-works-heading" className="text-lg font-extrabold text-charcoal-900 font-display">
+            How It Works
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <article className="signx-card p-5 bg-white shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-8 h-8 rounded-xl bg-coral-100 text-coral-600 flex items-center justify-center text-xs font-bold">
+                01
+              </span>
+              <Camera className="w-4 h-4 text-coral-600" />
+            </div>
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">Show Your Sign</h3>
+            <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
+              Position your hand clearly inside the camera frame and perform the sign.
+            </p>
+          </article>
+
+          <article className="signx-card p-5 bg-white shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-8 h-8 rounded-xl bg-forest-100 text-forest-700 flex items-center justify-center text-xs font-bold">
+                02
+              </span>
+              <Sparkles className="w-4 h-4 text-forest-700" />
+            </div>
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">AI Detects the Sign</h3>
+            <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
+              SignX processes the visual input using its trained sign-language recognition model.
+            </p>
+          </article>
+
+          <article className="signx-card p-5 bg-white shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-8 h-8 rounded-xl bg-coral-100 text-coral-600 flex items-center justify-center text-xs font-bold">
+                03
+              </span>
+              <Volume1 className="w-4 h-4 text-coral-600" />
+            </div>
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">Hear the Detected Sign</h3>
+            <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
+              Once AI detects a sign, its detected sign/class name is spoken aloud using voice output.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      {/* Official ISLRTC learning resources */}
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-8" aria-labelledby="learn-isl-heading">
+        <div className="mb-4">
+          <h2 id="learn-isl-heading" className="text-lg font-extrabold text-charcoal-900 font-display">
+            Learn Indian Sign Language
+          </h2>
+          <p className="text-xs text-charcoal-500 mt-1">
+            Explore official ISLRTC learning videos on YouTube.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <a
+            href="https://www.youtube.com/results?search_query=ISLRTC+official+Indian+Sign+Language+alphabet"
+            target="_blank"
+            rel="noreferrer"
+            className="signx-card p-5 bg-white shadow-sm hover:shadow-card transition-shadow"
+          >
+            <Youtube className="w-5 h-5 text-coral-600 mb-3" />
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">ISL Alphabet</h3>
+            <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
+              Practice the Indian Sign Language alphabet with official ISLRTC videos.
+            </p>
+            <span className="inline-block text-[11px] font-semibold text-coral-600 mt-3">Watch on YouTube</span>
+          </a>
+
+          <a
+            href="https://www.youtube.com/results?search_query=ISLRTC+official+Indian+Sign+Language+basic+signs"
+            target="_blank"
+            rel="noreferrer"
+            className="signx-card p-5 bg-white shadow-sm hover:shadow-card transition-shadow"
+          >
+            <Youtube className="w-5 h-5 text-forest-700 mb-3" />
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">Everyday Signs</h3>
+            <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
+              Learn useful everyday signs from official ISLRTC learning resources.
+            </p>
+            <span className="inline-block text-[11px] font-semibold text-forest-700 mt-3">Watch on YouTube</span>
+          </a>
+
+          <a
+            href="https://www.youtube.com/results?search_query=ISLRTC+official+Indian+Sign+Language+dictionary"
+            target="_blank"
+            rel="noreferrer"
+            className="signx-card p-5 bg-white shadow-sm hover:shadow-card transition-shadow"
+          >
+            <Youtube className="w-5 h-5 text-coral-600 mb-3" />
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">ISL Dictionary</h3>
+            <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
+              Go beyond model-supported signs with the official ISLRTC dictionary resources.
+            </p>
+            <span className="inline-block text-[11px] font-semibold text-coral-600 mt-3">Watch on YouTube</span>
+          </a>
+        </div>
+      </section>
 
       {/* Floating SignX Assistant Chatbot Button */}
       <div className="fixed bottom-6 right-6 z-30">
