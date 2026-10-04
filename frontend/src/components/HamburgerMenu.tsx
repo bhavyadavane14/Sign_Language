@@ -4,6 +4,7 @@ import {
   Settings, HelpCircle, Info, LogOut, MessageSquare, Sparkles 
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import signxLogo from '../assets/signx_logo.png';
 
 interface HamburgerMenuProps {

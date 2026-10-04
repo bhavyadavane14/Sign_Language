@@ -3,6 +3,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
@@ -33,6 +35,8 @@ googleProvider.setCustomParameters({
 
 export {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,

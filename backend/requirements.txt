@@ -11,10 +11,10 @@ python-multipart
 mediapipe
 opencv-python-headless
 numpy
-tensorflow
 google-generativeai
 gTTS
 Pillow
 alembic
 httpx
-httpx2
+torch
+torchvision

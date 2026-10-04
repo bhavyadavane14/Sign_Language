@@ -1,7 +1,20 @@
-# Live ISL Bi-LSTM inference
-numpy
-opencv-python
+fastapi
+uvicorn[standard]
+sqlalchemy
+asyncpg
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+python-multipart
 mediapipe
+opencv-python-headless
+numpy
+google-generativeai
+gTTS
+Pillow
+alembic
+httpx
 torch
-
-# The existing full SIGNX backend dependencies remain in backend/requirements.txt.
+torchvision

@@ -4,6 +4,7 @@ import {
   RotateCw, RefreshCw, MessageSquare, AlertCircle, Sparkles, Check, Info, Youtube
 } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
+import { useApp } from '../context/AppContext';
 import { useMediaPipeHands } from '../hooks/useMediaPipeHands';
 import SignXHeader from '../components/SignXHeader';
 import HamburgerMenu from '../components/HamburgerMenu';
@@ -12,7 +13,8 @@ import TranslationOutputCard from '../components/TranslationOutputCard';
 import { historyService } from '../services/historyService';
 
 export default function Translator() {
-  const { isCameraActive, startCamera, stopCamera, videoRef, error: cameraError } = useCamera();
+  const { isCameraActive, startCamera, stopCamera, switchCamera, videoRef, availableCameras, activeCameraId, error: cameraError } = useCamera();
+  const { t } = useApp();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Live MediaPipe landmark extraction (Strictly vision preprocessing, no fake classification)
@@ -78,7 +80,7 @@ export default function Translator() {
       {/* 1. Top Web Header matching Screens 4 & 5 */}
       <SignXHeader 
         onOpenMenu={() => setIsMenuOpen(true)} 
-        showProfile={true}
+        
       />
 
       {/* 2. Main Studio Viewport (Responsive: Mobile centered, Desktop side-by-side) */}
@@ -120,7 +122,7 @@ export default function Translator() {
                       <CameraOff className="w-8 h-8" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-base sm:text-lg text-charcoal-900 font-display">Camera is Paused</h3>
+                      <h3 className="font-bold text-base sm:text-lg text-charcoal-900 font-display">{t('camera_paused')}</h3>
                       <p className="text-xs sm:text-sm text-charcoal-500 mt-1 max-w-xs">
                         Click the center button below to activate your webcam for live Indian Sign Language capture.
                       </p>
@@ -132,7 +134,7 @@ export default function Translator() {
                     )}
                     <button
                       type="button"
-                      onClick={startCamera}
+                      onClick={() => startCamera()}
                       className="px-4 py-2 rounded-xl bg-coral-500 text-white text-sm font-semibold hover:bg-coral-600 transition-colors"
                     >
                       Try Again
@@ -140,12 +142,12 @@ export default function Translator() {
                   </div>
                 )}
 
-                {/* Status Pill Badge matching Screen 4: "Detecting..." / "Waiting for sign..." */}
+                {/* Status Pill Badge matching Screen 4: "Detecting..." / t('waiting_for_sign') */}
                 {isCameraActive && (
                   <div className="absolute bottom-4 inset-x-0 flex justify-center pointer-events-none">
                     <div className="px-4 py-1.5 rounded-full bg-charcoal-900/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-2 border border-white/20 shadow-md">
                       <span className={`w-2.5 h-2.5 rounded-full ${isDetecting ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
-                      <span>{isDetecting ? 'Detecting gestures...' : 'Position your hand inside frame'}</span>
+                      <span>{isDetecting ? 'Detecting gestures...' : t('position_hand')}</span>
                     </div>
                   </div>
                 )}
@@ -180,7 +182,7 @@ export default function Translator() {
 
                 {/* Center: Large Record / Stop Toggle (Red/Coral circle matching Screen 4) */}
                 <button
-                  onClick={isCameraActive ? stopCamera : startCamera}
+                  onClick={isCameraActive ? stopCamera : () => startCamera()}
                   aria-label={isCameraActive ? "Stop Camera" : "Start Camera"}
                   className="w-16 h-16 rounded-full bg-gradient-to-tr from-coral-500 to-coral-600 p-1.5 shadow-btn flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
                 >
@@ -313,7 +315,7 @@ export default function Translator() {
               </span>
               <Camera className="w-4 h-4 text-coral-600" />
             </div>
-            <h3 className="text-sm font-bold text-charcoal-900 font-display">Show Your Sign</h3>
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">{t('show_your_sign')}</h3>
             <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
               Position your hand clearly inside the camera frame and perform the sign.
             </p>
@@ -326,7 +328,7 @@ export default function Translator() {
               </span>
               <Sparkles className="w-4 h-4 text-forest-700" />
             </div>
-            <h3 className="text-sm font-bold text-charcoal-900 font-display">AI Detects the Sign</h3>
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">{t('ai_detects')}</h3>
             <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
               SignX processes the visual input using its trained sign-language recognition model.
             </p>
@@ -339,7 +341,7 @@ export default function Translator() {
               </span>
               <Volume1 className="w-4 h-4 text-coral-600" />
             </div>
-            <h3 className="text-sm font-bold text-charcoal-900 font-display">Hear the Detected Sign</h3>
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">{t('hear_sign')}</h3>
             <p className="text-xs text-charcoal-600 leading-relaxed mt-1.5">
               Once AI detects a sign, its detected sign/class name is spoken aloud using voice output.
             </p>
