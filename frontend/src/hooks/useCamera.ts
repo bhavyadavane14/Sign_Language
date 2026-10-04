@@ -8,15 +8,37 @@ export const useCamera = () => {
 
   const startCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera access is unavailable. Open this app on localhost or HTTPS.');
       }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
+      });
+
+      const video = videoRef.current;
+      if (!video) {
+        stream.getTracks().forEach(track => track.stop());
+        throw new Error('Camera preview is not ready. Please try again.');
+      }
+
+      video.srcObject = stream;
+      await video.play();
       streamRef.current = stream;
       setIsCameraActive(true);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to access camera');
+    } catch (err) {
+      const errorName = err instanceof DOMException ? err.name : '';
+      const message = errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError'
+        ? 'Camera permission was denied. Allow camera access for this site, then tap Start Camera again.'
+        : errorName === 'NotFoundError'
+          ? 'No camera was found. Connect a webcam and try again.'
+          : errorName === 'NotReadableError'
+            ? 'The camera is already in use by another app.'
+            : err instanceof Error ? err.message : 'Failed to access camera.';
+
+      setError(message);
       setIsCameraActive(false);
     }
   }, []);

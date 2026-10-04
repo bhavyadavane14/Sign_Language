@@ -125,6 +125,18 @@ export default function Translator() {
                         Click the center button below to activate your webcam for live Indian Sign Language capture.
                       </p>
                     </div>
+                    {cameraError && (
+                      <p className="text-xs sm:text-sm text-coral-700 max-w-sm" role="alert">
+                        {cameraError}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="px-4 py-2 rounded-xl bg-coral-500 text-white text-sm font-semibold hover:bg-coral-600 transition-colors"
+                    >
+                      Try Again
+                    </button>
                   </div>
                 )}
 
