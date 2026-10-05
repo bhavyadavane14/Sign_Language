@@ -1,7 +1,9 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 fastapi
 uvicorn[standard]
 sqlalchemy
 asyncpg
+aiosqlite
 pydantic
 pydantic-settings
 python-jose[cryptography]
@@ -17,4 +19,3 @@ Pillow
 alembic
 httpx
 torch
-torchvision
