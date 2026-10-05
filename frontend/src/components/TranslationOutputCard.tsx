@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useApp } from '../context/AppContext';
+import { ttsService } from '../services/ttsService';
 import { Volume2, VolumeX, RefreshCw, Lightbulb, Quote, Copy, Check, Play, Square } from 'lucide-react';
 
 interface TranslationOutputCardProps {
@@ -10,11 +12,13 @@ interface TranslationOutputCardProps {
 }
 
 export default function TranslationOutputCard({
+
   detectedSign,
   onTryAnother,
   confidence,
   autoSpeak = false,
 }: TranslationOutputCardProps) {
+  const { language } = useApp();
   const [outputMode, setOutputMode] = useState<'Text' | 'Speech' | 'Both'>('Both');
   const [isCopied, setIsCopied] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -34,41 +38,27 @@ export default function TranslationOutputCard({
     }
   }, []);
 
-  const speakText = useCallback((text: string, rate = speechRate) => {
-    if (!ttsSupported || !text) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-IN';
-      utterance.rate = rate;
-      utterance.pitch = 1.05;
-      utterance.volume = 1;
+  const translatedText = detectedSign ? ttsService.translateSign(detectedSign, language) : '';
 
-      utterance.onstart = () => {
+  const speakText = useCallback((text: string, rate = speechRate) => {
+    if (!text) return;
+    ttsService.speak(text, language, {
+      rate,
+      onStart: () => {
         setIsPlayingAudio(true);
         setTtsError('');
-      };
-      utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = (e) => {
+      },
+      onEnd: () => setIsPlayingAudio(false),
+      onError: () => {
         setIsPlayingAudio(false);
-        if (e.error !== 'interrupted') {
-          setTtsError('Voice playback failed. Please try again.');
-        }
-      };
-
-      // iOS/Safari workaround: needs a small delay
-      setTimeout(() => window.speechSynthesis.speak(utterance), 50);
-    } catch (err) {
-      setIsPlayingAudio(false);
-      setTtsError('Voice playback failed. Please check browser audio permissions.');
-    }
-  }, [ttsSupported, speechRate]);
+        setTtsError('Voice playback failed. Please check audio permissions.');
+      }
+    });
+  }, [language, speechRate]);
 
   const stopSpeaking = useCallback(() => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      setIsPlayingAudio(false);
-    }
+    ttsService.stop();
+    setIsPlayingAudio(false);
   }, []);
 
   // Auto-speak when a genuinely new sign is detected and mode is Speech or Both

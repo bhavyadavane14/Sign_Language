@@ -11,10 +11,11 @@ import HamburgerMenu from '../components/HamburgerMenu';
 import SignXAssistantDrawer from '../components/SignXAssistantDrawer';
 import TranslationOutputCard from '../components/TranslationOutputCard';
 import { historyService } from '../services/historyService';
+import { ttsService } from '../services/ttsService';
 
 export default function Translator() {
   const { isCameraActive, startCamera, stopCamera, switchCamera, videoRef, availableCameras, activeCameraId, error: cameraError } = useCamera();
-  const { t } = useApp();
+  const { t, language } = useApp();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Live MediaPipe landmark extraction (Strictly vision preprocessing, no fake classification)
@@ -61,17 +62,24 @@ export default function Translator() {
     }
   }, [detectedSign, isModelLoaded]);
 
-  const handleSpeak = (text: string) => {
-    if (!text) return;
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.lang = 'en-IN';
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
+    // Get localized translation for detected sign
+  const translatedSign = currentSign ? ttsService.translateSign(currentSign, language) : '';
+
+  const handleSpeak = (textToSpeak?: string) => {
+    if (isSpeaking) {
+      ttsService.stop();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const rawText = textToSpeak || currentSign || (isDetecting ? "Detecting gesture" : "Waiting for sign");
+    if (!rawText) return;
+
+    ttsService.speak(rawText, language, {
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false)
+    });
   };
 
   return (
@@ -235,35 +243,48 @@ export default function Translator() {
 
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-2xl sm:text-3xl font-extrabold text-charcoal-900 tracking-tight font-display">
-                      {isModelLoaded 
-                        ? (currentSign || (isDetecting ? "Processing gesture..." : "Waiting for sign..."))
-                        : (isDetecting ? "Hand Tracked (MediaPipe)" : "Position hand in frame")}
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-charcoal-900 tracking-tight font-display flex items-baseline gap-2 flex-wrap">
+                      <span>
+                        {isModelLoaded 
+                          ? (currentSign || (isDetecting ? t('detecting') : t('waiting_for_sign')))
+                          : (isDetecting ? "Hand Tracked (MediaPipe)" : t('position_hand'))}
+                      </span>
+                      {currentSign && translatedSign && translatedSign.toLowerCase() !== currentSign.toLowerCase() && (
+                        <span className="text-lg sm:text-xl font-bold text-coral-600 bg-coral-50 px-2.5 py-0.5 rounded-lg border border-coral-200">
+                          {translatedSign}
+                        </span>
+                      )}
                     </h3>
                     
                     <p className="text-xs text-charcoal-500 mt-1 leading-relaxed">
                       {isModelLoaded 
-                        ? (currentSign ? "Recognized by neural model" : "Sign steady inside the green reticle box")
+                        ? (currentSign 
+                            ? `${language}: "${translatedSign || currentSign}" • Click speaker to hear audio` 
+                            : t('show_your_sign'))
                         : (isDetecting 
                             ? "21 3D landmarks extracted • Awaiting verified model weights" 
-                            : "No hand visible inside webcam viewport")}
+                            : t('position_hand'))}
                     </p>
                   </div>
 
-                  {/* Speaker Button (active only if genuine sign exists) */}
+                  {/* Speaker Button */}
                   <button
                     onClick={() => handleSpeak(currentSign)}
-                    disabled={!currentSign}
-                    aria-label="Speak detected sign"
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-btn ${
+                    aria-label="Speak translated answer"
+                    title={isSpeaking ? "Click to stop speaking" : "Speak translated answer"}
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-btn active:scale-95 ${
                       isSpeaking 
-                        ? 'bg-forest-700 text-white animate-pulse' 
+                        ? 'bg-forest-700 text-white animate-pulse ring-4 ring-forest-200' 
                         : currentSign
-                          ? 'bg-coral-500 hover:bg-coral-600 text-white active:scale-95'
-                          : 'bg-cream-200 text-charcoal-400 cursor-not-allowed shadow-none'
+                          ? 'bg-coral-500 hover:bg-coral-600 text-white shadow-btn'
+                          : 'bg-cream-200 text-charcoal-600 hover:bg-cream-300'
                     }`}
                   >
-                    <Volume2 className="w-5 h-5" />
+                    {isSpeaking ? (
+                      <Volume1 className="w-5 h-5 animate-bounce" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
