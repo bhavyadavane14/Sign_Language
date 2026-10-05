@@ -5,10 +5,11 @@ services:
   - type: web
     name: signx-backend
     runtime: python
+    rootDir: backend
     plan: free
     branch: main
-    buildCommand: pip install --upgrade pip && pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir backend
+    buildCommand: pip install --upgrade pip && pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
@@ -22,10 +23,11 @@ services:
   - type: web
     name: signx-frontend
     runtime: static
+    rootDir: frontend
     plan: free
     branch: main
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
