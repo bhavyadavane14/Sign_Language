@@ -1,4 +1,7 @@
 services:
+  # ------------------------------------------------------
+  # 1. SIGNX Python FastAPI Backend Service
+  # ------------------------------------------------------
   - type: web
     name: signx-backend
     runtime: python
@@ -12,3 +15,18 @@ services:
         value: 3.11.9
       - key: CORS_ORIGINS
         value: "*"
+
+  # ------------------------------------------------------
+  # 2. SIGNX React + Vite Frontend Static Site
+  # ------------------------------------------------------
+  - type: web
+    name: signx-frontend
+    runtime: static
+    plan: free
+    branch: main
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
